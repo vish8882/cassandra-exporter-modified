@@ -117,12 +117,19 @@ public class TextFormatChunkedInput implements ChunkedInput<ByteBuf> {
 
     @Override
     public ByteBuf readChunk(final ChannelHandlerContext ctx) {
-        final ByteBuf chunkBuffer = ctx.alloc().buffer(1024 * 1024 * 5);
+        return readChunk(ctx.alloc());
+    }
 
+    private long offset;
+    @Override
+    public ByteBuf readChunk(ByteBufAllocator allocator) {
+        int offset=0;
+        final ByteBuf chunkBuffer = allocator.buffer();
         // add slices till we hit the chunk size (or slightly over it), or hit EOF
         while (chunkBuffer.readableBytes() < 1024 * 1024 && state != State.EOF) {
             try {
                 nextSlice(chunkBuffer);
+                offset = chunkBuffer.readableBytes();
 
             } catch (final Exception e) {
                 chunkBuffer.release();
@@ -130,7 +137,18 @@ public class TextFormatChunkedInput implements ChunkedInput<ByteBuf> {
                 throw e;
             }
         }
+        this.offset +=offset;
 
         return chunkBuffer;
+    }
+
+    @Override
+    public long length() {
+        return -1;
+    }
+
+    @Override
+    public long progress() {
+        return offset;
     }
 }

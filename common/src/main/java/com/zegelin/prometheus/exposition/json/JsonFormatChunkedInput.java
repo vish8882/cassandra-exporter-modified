@@ -5,6 +5,7 @@ import com.google.common.escape.CharEscaperBuilder;
 import com.google.common.escape.Escaper;
 import com.zegelin.prometheus.domain.*;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.stream.ChunkedInput;
@@ -42,15 +43,15 @@ public class JsonFormatChunkedInput implements ChunkedInput<ByteBuf> {
     }
 
     private static final Escaper JSON_STRING_ESCAPER = new CharEscaperBuilder()
-            .addEscape('"', "\\\"")
-            .addEscape('\\', "\\\\")
-            .addEscape('/', "\\/")
-            .addEscape('\b', "\\b")
-            .addEscape('\f', "\\f")
-            .addEscape('\n', "\\n")
-            .addEscape('\r', "\\r")
-            .addEscape('\t', "\\t")
-            .toEscaper();
+        .addEscape('"', "\\\"")
+        .addEscape('\\', "\\\\")
+        .addEscape('/', "\\/")
+        .addEscape('\b', "\\b")
+        .addEscape('\f', "\\f")
+        .addEscape('\n', "\\n")
+        .addEscape('\r', "\\r")
+        .addEscape('\t', "\\t")
+        .toEscaper();
 
 
     private final Iterator<MetricFamily> metricFamilyIterator;
@@ -64,6 +65,7 @@ public class JsonFormatChunkedInput implements ChunkedInput<ByteBuf> {
 
     private int metricFamilyCount = 0;
     private int metricCount = 0;
+    private long offset;
 
     private final Stopwatch stopwatch = Stopwatch.createUnstarted();
 
@@ -400,20 +402,36 @@ public class JsonFormatChunkedInput implements ChunkedInput<ByteBuf> {
     }
 
     @Override
-    public ByteBuf readChunk(final ChannelHandlerContext ctx) throws Exception {
-        final ByteBuf chunkBuffer = ctx.alloc().buffer(1024 * 1024 * 5);
+    public ByteBuf readChunk(final ChannelHandlerContext ctx) {
+        return readChunk(ctx.alloc());
+    }
+
+    @Override
+    public ByteBuf readChunk(ByteBufAllocator allocator) {
+        int offset=0;
+        final ByteBuf chunkBuffer = allocator.buffer(1024 * 1024 * 5);
 
         // add slices till we hit the chunk size (or slightly over it), or hit EOF
         while (chunkBuffer.readableBytes() < 1024 * 1024 && state != State.EOF) {
             try {
                 nextSlice(chunkBuffer);
-
+                offset = chunkBuffer.readableBytes();
             } catch (final Exception e) {
                 chunkBuffer.release();
                 throw e;
             }
         }
-
+        this.offset +=offset;
         return chunkBuffer;
+    }
+
+    @Override
+    public long length() {
+        return -1;
+    }
+
+    @Override
+    public long progress() {
+        return 0;
     }
 }

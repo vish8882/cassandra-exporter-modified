@@ -5,11 +5,11 @@
     <parent>
         <groupId>com.zegelin.cassandra-exporter</groupId>
         <artifactId>exporter-parent</artifactId>
-        <version>0.9.11-SNAPSHOT</version>
+        <version>0.9.11</version>
     </parent>
 
     <artifactId>common</artifactId>
-    <version>0.9.11-SNAPSHOT</version>
+    <version>0.9.11</version>
 
     <name>Cassandra Exporter Common</name>
 
@@ -28,6 +28,13 @@
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
             <version>${version.picocli}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${version.netty}</version>
             <scope>compile</scope>
         </dependency>
 
